@@ -16,27 +16,27 @@ This class has the purpose of automatically creating stubs for POJOs that are
  There are two ways of instantiating, using the default and the custom
  instance; using default instance creates random values for all the fields:
  <pre class="code">
- public class MyBean {                               <br>
- &#09; private String string;                        <br>
- &#09; private MyEnum enum;                          <br>
- &#09; private List<Integer> integers;               <br>
- &#09; private Map<Double,Date> map;                 <br>
+ public class MyBean {                               
+ &#09; private String string;                        
+ &#09; private MyEnum enum;                          
+ &#09; private List<Integer> integers;               
+ &#09; private Map<Double,Date> map;                 
  &#09; private int[] ints;
- //other fields, getters and setters                 <br>
- }                                                   <br>
-                                                     <br>
- Bean myBean = StubFactory.instance().create(MyBean.class);                                    <br>
- Map<String, BigInteger> map = stubFactory.create(Map.class, String.class, BigInteger.class);  <br>
+ &#09; //other fields, getters and setters                 
+ }                                                   
+ <br>                                                    
+ Bean myBean = StubFactory.instance().create(MyBean.class);                                    
+ Map<String, BigInteger> map = stubFactory.create(Map.class, String.class, BigInteger.class);  
  </pre>
  
  Besides the auto-generated random values, custom values can be provided for
- certain bean values; talking for example the {@code MyBean} from above, if
- custom values are needed for {@code string} field then the StubFactory needs
+ certain bean values; talking for example the MyBean from above, if
+ custom values are needed for string field then the StubFactory needs
  to be instantiated:
  <pre class="code">
- StubFactory stubFactory = StubFactory.customInstance()          <br> 
-    &#09; .addCustomValue("setString", "ab", "c")                <br>
-    &#09; .addCustomValue("setOtherField", otherValues);         <br>
+ StubFactory stubFactory = StubFactory.customInstance()           
+    &#09; .addCustomValue("setString", "ab", "c")                
+    &#09; .addCustomValue("setOtherField", otherValues);         
     &#09; .build();
  </pre>
  In this way the value for String field will be randomly selected from those provided.
