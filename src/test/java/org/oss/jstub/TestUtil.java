@@ -3,6 +3,7 @@ package org.oss.jstub;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.function.BiPredicate;
 import java.util.function.Predicate;
 
@@ -54,7 +55,7 @@ public class TestUtil {
     }
 
     public static <T> void assertFieldsEquals(T o1, T o2) {
-        assertFieldsPredicate(o1, o2, (ob1, ob2) -> ob1 != null && ob1.equals(ob2));
+        assertFieldsPredicate(o1, o2, Objects::equals);
     }
 
     public static <T> void assertFieldsNotEquals(T o1, T o2) {

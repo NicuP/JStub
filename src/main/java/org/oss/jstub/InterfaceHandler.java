@@ -11,9 +11,11 @@ import java.lang.reflect.Type;
  * classes that implement a given interface, interface fields are going to be
  * implemented with proxies of that interface, and the return type of each
  * method is going to be stubbed.
+ *
+ * @author nicu
  */
 class InterfaceHandler implements InvocationHandler {
-    private static StubFactory stubFactory = StubFactory.instance();
+    private static StubFactory stubFactory = StubFactory.get();
     private static InvocationHandler invocationHandler = new InterfaceHandler();
 
     @SuppressWarnings("unchecked")

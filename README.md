@@ -6,11 +6,11 @@ This class has the purpose of automatically creating stubs for POJOs that are
  are of the type:
  <ul>
  <li>Basic types: int, long, double, float, byte, char (including wrappers)</li>
- <li>Java common used types: String, Date, BigInteger, BigDecimal</li>
+ <li>Java common used types: String, Date, BigInteger, BigDecimal, Date, Instant</li>
  <li>Any Enum</li>
- <li>Interfaces that have return types any of the above - proxy is created</li>
  <li>Array, List, Set or Map of type of any of the above</li>
  <li>Any Java Bean that recursively decomposes to any of the above</li>
+ <li>Interfaces that have return types in methods any of the above - proxy is created</li>
  </ul>
  <p>
  There are two ways of instantiating, using the default and the custom
@@ -25,7 +25,7 @@ This class has the purpose of automatically creating stubs for POJOs that are
  &#09; //other fields, getters and setters                 
  }                                                   
  <br>                                                    
- Bean myBean = StubFactory.instance().create(MyBean.class);                                    
+ Bean myBean = StubFactory.get().create(MyBean.class);
  Map<String, BigInteger> map = stubFactory.create(Map.class, String.class, BigInteger.class);  
  </pre>
  
@@ -34,9 +34,10 @@ This class has the purpose of automatically creating stubs for POJOs that are
  custom values are needed for string field then the StubFactory needs
  to be instantiated:
  <pre class="code">
- StubFactory stubFactory = StubFactory.customInstance()           
+ StubFactory stubFactory = StubFactory.builder()
     &#09; .addCustomValue("setString", "ab", "c")                
-    &#09; .addCustomValue("setOtherField", otherValues);         
+    &#09; .addCustomValue("setOtherField", otherValues);
+    &#09; .addIgnoredSetter("setNothing");
     &#09; .build();
  </pre>
  In this way the value for String field will be randomly selected from those provided.

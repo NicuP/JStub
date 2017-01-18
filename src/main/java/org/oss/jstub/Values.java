@@ -1,20 +1,26 @@
 package org.oss.jstub;
 
-import javax.xml.datatype.XMLGregorianCalendar;
-import java.math.BigDecimal;
-import java.math.BigInteger;
-import java.sql.Timestamp;
-import java.util.*;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Set;
 import java.util.function.Supplier;
 
-final class DefaultValues {
+/**
+ * The values for the fields are generated here
+ *
+ * @author nicu
+ */
+final class Values {
     private final RandomGenerator randomGenerator;
     private final Map<String, Object[]> customValues;
     private final Map<String, Supplier<?>> customSuppliers;
     private final Map<Class<?>, Supplier<?>> defaultValues;
     private final Set<String> ignoredSetters;
 
-    DefaultValues() {
+    Values() {
         randomGenerator = new RandomGenerator();
         defaultValues = defaultValuesMap();
         customValues = Collections.emptyMap();
@@ -22,8 +28,8 @@ final class DefaultValues {
         ignoredSetters = Collections.emptySet();
     }
 
-    DefaultValues(Map<String, Object[]> customValues, Map<String, Supplier<?>> customSuppliers,
-                  Set<String> ignoredSetters) {
+    Values(Map<String, Object[]> customValues, Map<String, Supplier<?>> customSuppliers,
+           Set<String> ignoredSetters) {
         randomGenerator = new RandomGenerator();
         defaultValues = defaultValuesMap();
         this.customValues = customValues;
@@ -33,31 +39,25 @@ final class DefaultValues {
 
     private Map<Class<?>, Supplier<?>> defaultValuesMap() {
         Map<Class<?>, Supplier<?>> supplierMap = new HashMap<>();
-        RandomGenerator random = new RandomGenerator();
-        supplierMap.put(String.class, random::nextAlphabeticString);
-        supplierMap.put(int.class, random::nextInt);
-        supplierMap.put(Integer.class, random::nextInt);
-        supplierMap.put(byte.class, random::nextByte);
-        supplierMap.put(Byte.class, random::nextByte);
-        supplierMap.put(char.class, random::nextChar);
-        supplierMap.put(Character.class, random::nextChar);
-        supplierMap.put(double.class, random::nextDouble);
-        supplierMap.put(Double.class, random::nextDouble);
-        supplierMap.put(long.class, random::nextLong);
-        supplierMap.put(Long.class, random::nextLong);
-        supplierMap.put(float.class, random::nextFloat);
-        supplierMap.put(Float.class, random::nextFloat);
-        supplierMap.put(boolean.class, random::nextBoolean);
-        supplierMap.put(Boolean.class, random::nextBoolean);
-        supplierMap.put(Date.class, random::nextDate);
-        supplierMap.put(BigInteger.class, random::nextBigInteger);
-        supplierMap.put(BigDecimal.class, random::nextBigDecimal);
-        supplierMap.put(Timestamp.class, random::nextTimestamp);
-        supplierMap.put(Calendar.class, random::nextCalendar);
-        supplierMap.put(GregorianCalendar.class, random::nextGregorianCalendar);
-        supplierMap.put(XMLGregorianCalendar.class, random::nextXmlGregorianCalendar);
-
+        Class<RandomGenerator> clz = RandomGenerator.class;
+        for (Method method : clz.getMethods()) {
+            if (method.getName().startsWith("next") && method.getParameterCount() == 0) {
+                Class<?> returnType = method.getReturnType();
+                Supplier<?> supplier = safeSupplier(method, randomGenerator, "Cannot create default values");
+                supplierMap.putIfAbsent(returnType, supplier);
+            }
+        }
         return supplierMap;
+    }
+
+    private Supplier<?> safeSupplier(Method method, Object invocation, String message) {
+        return () -> {
+            try {
+                return method.invoke(invocation);
+            } catch (IllegalAccessException | InvocationTargetException e) {
+                throw new IllegalStateException(message, e);
+            }
+        };
     }
 
     RandomGenerator getRandomGenerator() {

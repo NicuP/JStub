@@ -6,11 +6,19 @@ import javax.xml.datatype.XMLGregorianCalendar;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.sql.Timestamp;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.GregorianCalendar;
 import java.util.Random;
 
+/**
+ * Random class which extends and relies on java.util.Random to generate other random
+ * basic types.
+ * @author nicu
+ */
 public class RandomGenerator extends Random {
     public String nextAlphabeticString() {
         return nextAlphabeticString(5);
@@ -64,6 +72,30 @@ public class RandomGenerator extends Random {
         return Math.abs(nextInt());
     }
 
+    public Character nextCharacter() {
+        return nextChar();
+    }
+
+    public Byte nextByteObj() {
+        return nextByte();
+    }
+
+    public Integer nextInteger() {
+        return nextInt();
+    }
+
+    public Long nextLongObj() {
+        return nextLong();
+    }
+
+    public Float nextFloatObj() {
+        return nextFloat();
+    }
+
+    public Double nextDoubleObj() {
+        return nextDouble();
+    }
+
     public BigDecimal nextBigDecimal() {
         return new BigDecimal(nextBigInteger());
     }
@@ -86,6 +118,18 @@ public class RandomGenerator extends Random {
 
     public XMLGregorianCalendar nextXmlGregorianCalendar() {
         return new XMLGregorianCalendarImpl(nextGregorianCalendar());
+    }
+
+    public LocalDate nextLocalDate() {
+        return nextLocalDateTime().toLocalDate();
+    }
+
+    public LocalDateTime nextLocalDateTime() {
+        return LocalDateTime.now();
+    }
+
+    public Instant nextInstant() {
+        return Instant.ofEpochMilli(nextDate().getTime());
     }
 
     private int getRandomNumber() {

@@ -32,7 +32,7 @@ import java.util.function.Supplier;
  * //other fields, getters and setters
  * }
  * <p>
- * Bean myBean = StubFactory.instance().create(MyBean.class);
+ * Bean myBean = StubFactory.get().create(MyBean.class);
  * Map<String, BigInteger> map = stubFactory.create(Map.class, String.class, BigInteger.class);
  * }
  * </pre>
@@ -42,7 +42,7 @@ import java.util.function.Supplier;
  * to be instantiated:
  * <pre class="code">
  * {@code
- * StubFactory stubFactory = StubFactory.customInstance()
+ * StubFactory stubFactory = StubFactory.builder()
  * .addCustomValue("setString", "ab", "c")
  * .addCustomValue("setOtherField", otherValues);
  * .build();
@@ -50,6 +50,8 @@ import java.util.function.Supplier;
  * </pre>
  * In this way the value for {@code String string} field will be randomly
  * selected from those provided.
+ *
+ * @author nicu
  */
 public final class StubFactory {
     public static final int DEFAULT_COLLECTION_SIZE = 3;
@@ -57,37 +59,33 @@ public final class StubFactory {
     private static final InterfaceHandler interfaceHandler = new InterfaceHandler();
     /*used to stop infinite recursion*/
     private static final Map<String, Object> cache = new HashMap<>();
-    private static StubFactory INSTANCE;
 
-    private final DefaultValues values;
+    private final Values values;
     private final int collectionSize;
 
     private StubFactory(int collectionSize) {
-        this.values = new DefaultValues();
+        this.values = new Values();
         this.collectionSize = collectionSize;
     }
 
-    private StubFactory(DefaultValues defaultValues, int collectionSize) {
-        this.values = defaultValues;
+    private StubFactory(Values values, int collectionSize) {
+        this.values = values;
         this.collectionSize = collectionSize;
     }
 
-    public static StubFactory instance() {
-        return instance(DEFAULT_COLLECTION_SIZE);
+    public static StubFactory get() {
+        return new StubFactory(DEFAULT_COLLECTION_SIZE);
     }
 
-    public static synchronized StubFactory instance(int collectionSize) {
-        if (INSTANCE == null) {
-            INSTANCE = new StubFactory(collectionSize);
-        }
-        return INSTANCE;
+    public static StubFactory get(int collectionSize) {
+        return new StubFactory(collectionSize);
     }
 
-    public static CustomValuesBuilder customInstance(int collectionSize) {
+    public static CustomValuesBuilder builder(int collectionSize) {
         return new CustomValuesBuilder(collectionSize);
     }
 
-    public static CustomValuesBuilder customInstance() {
+    public static CustomValuesBuilder builder() {
         return new CustomValuesBuilder(DEFAULT_COLLECTION_SIZE);
     }
 
@@ -98,7 +96,7 @@ public final class StubFactory {
         cache.clear();
         C collection = collectionSupplier.get();
         for (int i = 0; i < count; i++) {
-            T t = instance(cls, genericTypes);
+            T t = get(cls, genericTypes);
             collection.add(t);
         }
         return collection;
@@ -106,11 +104,11 @@ public final class StubFactory {
 
     public <T> T createStub(Class<T> cls, Class<?>... genericTypes) {
         cache.clear();
-        return instance(cls, genericTypes);
+        return get(cls, genericTypes);
     }
 
     @SuppressWarnings("unchecked")
-    private <T> T instance(Class<T> cls, Class<?>... genericTypes) {
+    private <T> T get(Class<T> cls, Class<?>... genericTypes) {
         if (values.isDefaultValueType(cls)) {
             return (T) values.randomDefaultValue(cls);
         }
@@ -150,16 +148,16 @@ public final class StubFactory {
     private <T> void handleSpecial(T mockedObject, Method method) {
         try {
             List list = (List) method.invoke(mockedObject);
+            if (list == null || list.size() >= collectionSize) {
+                return;
+            }
             Type type = method.getGenericReturnType();
             Class<?>[] genericTypes = getGenericTypes(type);
             if (genericTypes.length == 0) {
                 return;// wildcard type
             }
             Class<?> genericClass = genericTypes[0];
-            if (list == null) {
-                list = new ArrayList<>();
-            }
-            list.addAll(createStubCollection(collectionSize, ArrayList::new, genericClass));
+            list.addAll(createStubCollection(collectionSize - list.size(), ArrayList::new, genericClass));
         } catch (IllegalAccessException | InvocationTargetException e) {
             throw new IllegalArgumentException("Cannot invoke method " + method
                     + " on object of type " + mockedObject.getClass().getName());
@@ -182,7 +180,7 @@ public final class StubFactory {
         Class<?> arrayType = cls.getComponentType();
         Object array = Array.newInstance(arrayType, collectionSize);
         for (int i = 0; i < collectionSize; i++) {
-            Object value = instance(arrayType);
+            Object value = get(arrayType);
             Array.set(array, i, value);
         }
         return (T) array;
@@ -209,8 +207,8 @@ public final class StubFactory {
             }
             Map<T, T> map = new HashMap<>(collectionSize);
             for (int i = 0; i < collectionSize; i++) {
-                T t = instance(genericTypes[0]);
-                T v = instance(genericTypes[1]);
+                T t = get(genericTypes[0]);
+                T v = get(genericTypes[1]);
                 map.put(t, v);
             }
             return map;
@@ -225,7 +223,7 @@ public final class StubFactory {
                 collection = new ArrayList<>(collectionSize);
             }
             for (int i = 0; i < collectionSize; i++) {
-                T mock = instance(genericTypes[0]);
+                T mock = get(genericTypes[0]);
                 collection.add(mock);
             }
             return collection;
@@ -255,7 +253,7 @@ public final class StubFactory {
             for (Class<?> parameterType : parameterTypes) {
                 Type type = constructor.getGenericParameterTypes()[0];
                 Class<?>[] genericTypes = getGenericTypes(type);
-                parameterObjects[i++] = instance(parameterType, genericTypes);
+                parameterObjects[i++] = get(parameterType, genericTypes);
             }
             try {
                 return (T) constructor.newInstance(parameterObjects);
@@ -307,9 +305,9 @@ public final class StubFactory {
                     || hasInterface(parameterClass, Map.class)) {
                 Type type = method.getGenericParameterTypes()[0];
                 Class<?>[] genericTypes = getGenericTypes(type);
-                value = instance(parameterClass, genericTypes);
+                value = get(parameterClass, genericTypes);
             } else {
-                value = instance(parameterClass);
+                value = get(parameterClass);
             }
         }
         invoke(mockedObject, method, value);
@@ -381,9 +379,9 @@ public final class StubFactory {
         }
 
         public <T> T createStub(Class<T> cls, Class<?>... genericTypes) {
-            DefaultValues defaultValues =
-                    new DefaultValues(customValues, customSuppliers, ignoredSetters);
-            StubFactory stubFactory = new StubFactory(defaultValues, collectionSize);
+            Values values =
+                    new Values(customValues, customSuppliers, ignoredSetters);
+            StubFactory stubFactory = new StubFactory(values, collectionSize);
             return stubFactory.createStub(cls, genericTypes);
         }
 
@@ -391,17 +389,17 @@ public final class StubFactory {
                                                                    Supplier<C> collectionSupplier,
                                                                    Class<T> cls,
                                                                    Class<?>... genericTypes) {
-            DefaultValues defaultValues =
-                    new DefaultValues(customValues, customSuppliers, ignoredSetters);
-            StubFactory stubFactory = new StubFactory(defaultValues, collectionSize);
+            Values values =
+                    new Values(customValues, customSuppliers, ignoredSetters);
+            StubFactory stubFactory = new StubFactory(values, collectionSize);
             return stubFactory.createStubCollection(count,
                     collectionSupplier, cls, genericTypes);
         }
 
         public StubFactory build() {
-            DefaultValues defaultValues =
-                    new DefaultValues(customValues, customSuppliers, ignoredSetters);
-            return new StubFactory(defaultValues, collectionSize);
+            Values values =
+                    new Values(customValues, customSuppliers, ignoredSetters);
+            return new StubFactory(values, collectionSize);
         }
     }
 }
